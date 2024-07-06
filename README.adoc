@@ -1,0 +1,123 @@
+:toc: macro
+:toclevels: 5
+:toc-placement!:
+
+= mktrs-travel-service
+
+V2024.1.0
+
+The purpose of this demo application is to showcase different ways to build the deployment artifact with the most recent
+*Spring Boot* development tooling to improve memory/load metrics.
+
+This application is a reactive, it uses *Spring WebFlux* module.
+
+
+toc::[]
+
+== Dependency Libraries
+
+The following table indicates the tracked components needed for this project (notice that many of them may be not
+listed here).
+
+.Components
+[%header,cols="10%, 20%, 70%"]
+|===
+||Component|Version
+|1|JDK|21
+|2|Spring Boot|3.3.1
+|===
+
+== Run with JVM
+Running with JVM, when starting the application, *Spring* creates the context and uses a lot of memory because it has to scan the packages.
+
+When you run in this mode using the following command.
+
+[source,bash]
+----
+$ mvn spring-boot:run 
+----
+
+It shows that the Application started in 1.913 seconds (process running for 2.346), these values may vary on the target machine configuration.
+
+== JVM with AOT
+There is another technique that involves the usage of *_AOT_* which allows to prepare the *_Spring Context_* at compile time, thus speeding up the load time.
+
+Use the following commands
+
+[source,bash]
+----
+$ mvn clean compile spring-boot:process-aot package
+$ java -Dspring.aot.enabled=true -jar <jar-name>
+----
+
+Notice that the application startup time is 3.112 seconds (process running for 3.719).
+
+Somehow, if you want to always generate the AOT by default, add the following element to the *Spring Maven Plugin* to the *_executions_* node.
+
+[source,xml]
+----
+<execution>
+    <id>process-aot</id>
+    <goals>
+        <goal>process-aot</goal>
+    </goals>
+</execution>
+---- 
+
+and use a single command instead as follows
+
+[source,bash]
+----
+$ mvn clean -Dspring.aot.enabled=true spring-boot:run 
+----
+
+This will run in the JVM but uses the AOT compiled code to decrease start up time.
+
+== GraalVM
+An emerging recent year technique is the generation of the application to use the binary format of the target operating system. Using this technique
+allows the application to start up in a fraction of a second.
+
+[source,bash]
+----
+$ mvn clean package -Pnative
+$ mvn clean package -Pnative,nativeTest<1>
+----
+<1> Check if Mockito can be used in Native Tests as of now.
+NOTE: The _nativeTest_ requires the Docker Image builder.
+
+To build a Docker image as a GraalVM native image.
+
+[source,bash]
+----
+$ mvn clean spring-boot:build-image -Pnative
+$ docker run --rm -p 8080:8080 [image-name]:[version]
+----
+
+To build a native image locally 
+
+[source,bash]
+----
+$ mvn clean -Pnative native:compile <1>
+----
+<1> Requires GraalVM installed in your local machine.
+
+If you are in *Windows* machine, you must run the latter command inside the installed terminal named "x64 Native Tools Command Prompt".
+
+== References
+
+=== Spring Native
+
+* https://www.baeldung.com/spring-6-ahead-of-time-optimizations[Ahead of Time Optimizations in Spring 6^]
+* https://www.baeldung.com/spring-native-intro[Native Images with Spring Boot and GraalVM^]
+* https://spring.io/blog/2023/09/09/all-together-now-spring-boot-3-2-graalvm-native-images-java-21-and-virtual[All together now: Spring Boot 3.2, GraalVM native images, Java 21, and virtual threads with Project Loom^]
+* https://medium.com/ekino-france/native-image-with-spring-boot-70f32788528c[Native Image with Spring Boot^]
+
+=== GraalVM
+
+* https://www.graalvm.org/latest/docs/getting-started/windows/[Installation on Windows Platforms^]
+* https://www.graalvm.org/downloads/[GraalVM Downloads]
+* https://github.com/graalvm[GraalVM on Github^]
+* https://www.youtube.com/watch?v=FjRBHKUP-NA[Getting started with Spring Boot AOT + GraalVM Native Images^]
+
+=== Code Coverage
+* https://medium.com/@truongbui95/jacoco-code-coverage-with-spring-boot-835af8debc68[JaCoCo Code Coverage with Spring Boot^]
